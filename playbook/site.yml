@@ -1,0 +1,26 @@
+---
+  - name: Print os facts
+    hosts: all
+    vars:
+     remote_dir: /etc/ansible/facts.d
+     facts_file: "group_vars/{{ some_fact }}/some.fact"
+    tasks:
+      - name: Create Facts Dir on Managed Hosts
+        file:
+         path: "{{ remote_dir }}"
+         state: directory
+         recurse: yes
+      - name: Copy Contents to Facts file
+        copy:
+         src: "{{ facts_file }}"
+         dest: "{{ remote_dir }}"
+
+      - name: Print OS
+        debug:
+          msg: "{{ ansible_distribution }}"
+
+      - name: Print fact
+        debug:
+          msg: "{{ some_fact }}"
+        vars:
+         some_fact: "{{ansible_local.some.fun.some_fact}}"
