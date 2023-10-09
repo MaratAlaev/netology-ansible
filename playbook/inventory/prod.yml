@@ -2,5 +2,5 @@
 clickhouse:
   hosts:
     clickhouse-01:
-      ansible_host: 192.168.134.134
+      ansible_host: 192.168.61.150
       ansible_ssh_pass: 1234

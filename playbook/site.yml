@@ -29,16 +29,22 @@
       notify: Start clickhouse service
     - name: Flush handlers
       meta: flush_handlers
-    - name: Create database
-      ansible.builtin.command: "clickhouse-client -q 'create database logs;'"
-      register: create_db
-      failed_when: create_db.rc != 0 and create_db.rc !=82
-      changed_when: create_db.rc == 0
+  # - name: Create database
+  #    ansible.builtin.command: "clickhouse-client -q 'create database logs;'"
+  #    register: create_db
+  #    failed_when: create_db.rc != 0 and create_db.rc !=82
+  #    changed_when: create_db.rc == 0
 
 
 - name: Install Vector
   hosts: clickhouse
   tasks:
+  handlers:
+    - name: Start vector
+      become: true
+      ansible.builtin.service:
+        name: vector
+        state: restarted
     - name: Get Vector distrib
       ansible.builtin.get_url:
         url: "https://packages.timber.io/vector/0.29.1/vector-{{ vector_version }}-x86_64-unknown-linux-gnu.tar.gz"
@@ -52,9 +58,26 @@
     - name: Unarchive vector shell
       become: true
       ansible.builtin.shell:
-        cmd: "tar -xzf ./vector-0.29.1.tar.gz -C /etc/vector/"
+        cmd: "tar -xzf ./vector-0.29.1.tar.gz "
+    - block:
+        - name: Move bin file
+          become: true
+          ansible.builtin.copy:
+            mode: 0755
+            src: ./vector-x86_64-unknown-linux-gnu/bin/vector
+            dest: /usr/bin/vector
+            remote_src: true
+        - name: Move systemctl
+          become: true
+          ansible.builtin.copy:
+            mode: 0755
+            src: ./vector-x86_64-unknown-linux-gnu/etc/systemd/
+            dest: /etc/systemd/system/
+            remote_src: true
     - name: Edit config
+      become: true
       ansible.builtin.template:
         mode: 0755
         src: templates/vector.j2
-        dest: /etc/vector/vector-x86_64-unknown-linux-gnu/vector.yaml
+        dest: /etc/vector/vector.toml
+      notify: Start vector
