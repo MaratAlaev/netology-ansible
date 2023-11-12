@@ -10,9 +10,9 @@
 и выполянем запуск
 
 Пример команды 
-bash'''
+```bash
 ansible-playbook -i ./inventory/prod.yml site.yml
-'''
+```
 
 ### Требования
 
@@ -53,5 +53,7 @@ Restart Vectors - перезапуск сервисов vector
 Хендлеры:
 
 Start clickhouse service - рестарт сервиса ClichHouse
+
 Start vector - перезапус сервиса vector 
+
 Restart Nginx - перезапус nginx
