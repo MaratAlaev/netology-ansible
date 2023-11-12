@@ -1,4 +1,3 @@
----
 - name: Install Clickhouse
   hosts: clickhouse
   handlers:
@@ -11,73 +10,106 @@
     - block:
         - name: Get clickhouse distrib
           ansible.builtin.get_url:
-            url: "https://packages.clickhouse.com/rpm/stable/{{ item }}-{{ clickhouse_version }}.noarch.rpm"
-            dest: "./{{ item }}-{{ clickhouse_version }}.rpm"
+            url: "https://packages.clickhouse.com/deb/pool/main/c/{{ item }}/{{ item }}_{{ clickhouse_version }}_all.deb"
+            dest: "./{{ item }}-{{ clickhouse_version }}.deb"
           with_items: "{{ clickhouse_packages }}"
       rescue:
         - name: Get clickhouse distrib
           ansible.builtin.get_url:
-            url: "https://packages.clickhouse.com/rpm/stable/clickhouse-common-static-{{ clickhouse_version }}.x86_64.rpm"
-            dest: "./clickhouse-common-static-{{ clickhouse_version }}.rpm"
-    - name: Install clickhouse packages
+            url: "https://packages.clickhouse.com/deb/pool/main/c/clickhouse-common-static/clickhouse-common-static_{{ clickhouse_version }}_amd64.deb"
+            dest: "./clickhouse-common-static-{{ clickhouse_version }}.deb"
+    - name: Install clickhouse package common
       become: true
-      ansible.builtin.yum:
-        name:
-          - clickhouse-common-static-{{ clickhouse_version }}.rpm
-          - clickhouse-client-{{ clickhouse_version }}.rpm
-          - clickhouse-server-{{ clickhouse_version }}.rpm
+      ansible.builtin.apt:
+        deb: clickhouse-common-static-{{ clickhouse_version }}.deb
+    - name: Install clickhouse package client
+      become: true
+      ansible.builtin.apt:
+        deb: clickhouse-client-{{ clickhouse_version }}.deb
+    - name: Install clickhouse package server
+      become: true
+      ansible.builtin.apt:
+        deb: clickhouse-server-{{ clickhouse_version }}.deb
+    - name: Replace line 
+      become: true
+      ansible.builtin.lineinfile:
+        path: /etc/clickhouse-server/config.xml
+        regexp: '<!-- <listen_host>0.0.0.0</listen_host> -->'
+        line: <listen_host>0.0.0.0</listen_host>
       notify: Start clickhouse service
     - name: Flush handlers
       meta: flush_handlers
-  # - name: Create database
-  #    ansible.builtin.command: "clickhouse-client -q 'create database logs;'"
-  #    register: create_db
-  #    failed_when: create_db.rc != 0 and create_db.rc !=82
-  #    changed_when: create_db.rc == 0
-
+    - name: Create database
+      ansible.builtin.command: "clickhouse-client --host 127.0.0.1 -q '{{ create_db }}'"
+      register: create_db
+      failed_when: create_db.rc != 0 and create_db.rc !=82
+      changed_when: create_db.rc == 0
+    - name: Create table
+      ansible.builtin.command: "clickhouse-client --host 127.0.0.1 -q '{{ create_table }}'"
+      register: create_table
 
 - name: Install Vector
-  hosts: clickhouse
+  hosts: lighthouse, vector-server
   tasks:
-  handlers:
-    - name: Start vector
-      become: true
-      ansible.builtin.service:
-        name: vector
-        state: restarted
     - name: Get Vector distrib
       ansible.builtin.get_url:
-        url: "https://packages.timber.io/vector/0.29.1/vector-{{ vector_version }}-x86_64-unknown-linux-gnu.tar.gz"
-        dest: "./vector-{{ vector_version }}.tar.gz"
-    - name: Create Vector directory
+        url: "https://packages.timber.io/vector/{{ vector_version }}/vector_{{ vector_version }}-1_amd64.deb"
+        dest: "./vector-{{ vector_version }}.deb"
+    - name: Install Vector
       become: true
-      ansible.builtin.file:
-        path: /etc/vector/
-        state: directory
-        mode: 0755
-    - name: Unarchive vector shell
-      become: true
-      ansible.builtin.shell:
-        cmd: "tar -xzf ./vector-0.29.1.tar.gz "
-    - block:
-        - name: Move bin file
-          become: true
-          ansible.builtin.copy:
-            mode: 0755
-            src: ./vector-x86_64-unknown-linux-gnu/bin/vector
-            dest: /usr/bin/vector
-            remote_src: true
-        - name: Move systemctl
-          become: true
-          ansible.builtin.copy:
-            mode: 0755
-            src: ./vector-x86_64-unknown-linux-gnu/etc/systemd/
-            dest: /etc/systemd/system/
-            remote_src: true
-    - name: Edit config
+      ansible.builtin.apt:
+        deb: "./vector-{{ vector_version }}.deb"
+        state: present
+    - name: Edit config vector
       become: true
       ansible.builtin.template:
         mode: 0755
         src: templates/vector.j2
-        dest: /etc/vector/vector.toml
-      notify: Start vector
+        dest: /etc/vector/vector.yaml  
+
+- name: Install Nginx
+  hosts: lighthouse
+  handlers:
+    - name: Restart nginx
+      become: true
+      ansible.builtin.service:
+        name: nginx
+        state: restarted
+  tasks:
+    - name: Install Nginx
+      become: true
+      ansible.builtin.apt:
+        name: nginx 
+        state: latest
+    - name: Edit config Nginx
+      become: true
+      ansible.builtin.template:
+        mode: 0755
+        src: templates/nginx.j2
+        dest: /etc/nginx/nginx.conf
+    - name: Edit host Nginx
+      become: true
+      ansible.builtin.template:
+        mode: 0755
+        src:  templates/virtHost.j2
+        dest: /etc/nginx/sites-available/default
+      notify: Restart nginx
+
+- name: Install lighthouse
+  hosts: lighthouse
+  handlers:
+  tasks:
+    - name: Install lighthouse
+      become: true
+      ansible.builtin.git:
+        repo: "https://github.com/VKCOM/lighthouse.git"
+        dest: /var/www/lighthouse
+
+- name: Restart Vectors
+  hosts: lighthouse, vector-server
+  tasks:
+    - name: Restart vectors
+      become: true
+      ansible.builtin.service:
+        name: vector
+        state: restarted

@@ -2,5 +2,15 @@
 clickhouse:
   hosts:
     clickhouse-01:
-      ansible_host: 192.168.61.150
-      ansible_ssh_pass: 1234
+      ansible_host: 51.250.18.115
+      
+vector-server:
+  hosts:
+    vector-01: 
+      ansible_host: 158.160.67.32
+
+lighthouse:
+  hosts:
+    lighthouse-01:
+      ansible_host: 158.160.80.190
+  

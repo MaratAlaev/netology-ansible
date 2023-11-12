@@ -1,8 +1,8 @@
-# Установка ClichHouse 
+#  Использование Ansible
 
 ## Версии
 
-08-ansible-02-playbook основная версия
+08-ansible-03-playbook основная версия
 
 ## Запуск плейбука
 
@@ -11,7 +11,7 @@
 
 Пример команды 
 bash'''
-ansible-playbook -i ./inventory/prod.yml --ask-become-pass  site.yml
+ansible-playbook -i ./inventory/prod.yml site.yml
 '''
 
 ### Требования
@@ -22,30 +22,36 @@ ansible-playbook -i ./inventory/prod.yml --ask-become-pass  site.yml
 
 Таски:
 
-Get clickhouse distrib - скачивает пакеты rpm для ClichHouse
+Get clickhouse distrib - скачивает пакеты deb для ClichHouse
 в случае того если пакет clickhouse-common-static версии noarch не будет найден
 скачается версия x86_64  
 
 Install clickhouse packages - устанавливает пакеты ClichHouse
 
+Replace line - убирает комментарий со строки отвечающий за прослушивание хостов
+делается для того чтобы получить доступ к clickhouse извне 
+
 Create database - создает базу данных, после рестарта сервиса ClichHouse
 и проверяет вернувшийся код ответа 
 
-Get Vector distrib - скачивание архива с Vector
+Create table - создает таблицу в созданной базе данных
 
-Create Vector directory - создание директории в которую будет установлен Vector
+Install Vector- установка vector на двух хостах
 
-Unarchive vector shell - разархивирование выполняетя с помощью команды в shell 
-так как модуль unarchive не может разархивировать файл
+Edit config vector - настраивает конфиги для двух хоств 
 
-Move bin file - установка бинарника
+Install nginx - установка пакета nginx
 
-Move systemctl - установка сервиса
+Edit config Nginx - настройка конфига nginx
 
-Edit config - замена конфиг файла Vector 
-на шаболн из директории templates
+Edit host Nginx - настройка хоста
+
+Install lighthouse - установка lighthouse
+
+Restart Vectors - перезапуск сервисов vector
 
 Хендлеры:
 
 Start clickhouse service - рестарт сервиса ClichHouse
 Start vector - перезапус сервиса vector 
+Restart Nginx - перезапус nginx
