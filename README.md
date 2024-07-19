@@ -39,8 +39,11 @@
 
 ---
 
-[lighthouse](git@github.com:MaratAlaev/ansible-lighthouse.git)
-[vector](git@github.com:MaratAlaev/ansible-vector.git)
+
+[lighthouse](https://github.com/MaratAlaev/ansible-lighthouse.git)
+
+[vector](https://github.com/MaratAlaev/ansible-vector.git)
+
 playbook находится в этом репозитории
 
 
